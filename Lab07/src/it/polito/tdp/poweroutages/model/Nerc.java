@@ -1,9 +1,14 @@
 package it.polito.tdp.poweroutages.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Nerc {
 
 	private int id;
 	private String value;
+	
+	private List<PowerOutages> blackout = new ArrayList();
 
 	public Nerc(int id, String value) {
 		this.id = id;
@@ -52,6 +57,14 @@ public class Nerc {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append(value);
+		builder.append(this.id);
 		return builder.toString();
 	}
+	
+	public void addPowerOutages(PowerOutages p) {
+		if(!this.blackout.contains(p)) {
+			this.blackout.add(p);
+		}
+	}
+	
 }
