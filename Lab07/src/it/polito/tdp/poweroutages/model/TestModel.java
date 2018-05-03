@@ -8,6 +8,6 @@ public class TestModel {
 		Model model = new Model( anni, ore);
 		
 		System.out.println(model.getSoluzioneOttimale());
-		System.out.println(model.getNercList());
+		//System.out.println(model.getNercList());
 	}
 }

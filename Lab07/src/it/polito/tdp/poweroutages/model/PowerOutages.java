@@ -26,15 +26,24 @@ public class PowerOutages {
 		this.date_finished = date_finished;
 	}
 
+	
+
+
+
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + customers_effected;
+		result = prime * result + ((date_began == null) ? 0 : date_began.hashCode());
+		result = prime * result + ((date_finished == null) ? 0 : date_finished.hashCode());
+		result = prime * result + (int) (durataAnni ^ (durataAnni >>> 32));
+		result = prime * result + (int) (durataOre ^ (durataOre >>> 32));
 		result = prime * result + id;
 		result = prime * result + ((nerc == null) ? 0 : nerc.hashCode());
 		return result;
 	}
-
 
 
 
@@ -50,6 +59,22 @@ public class PowerOutages {
 		if (getClass() != obj.getClass())
 			return false;
 		PowerOutages other = (PowerOutages) obj;
+		if (customers_effected != other.customers_effected)
+			return false;
+		if (date_began == null) {
+			if (other.date_began != null)
+				return false;
+		} else if (!date_began.equals(other.date_began))
+			return false;
+		if (date_finished == null) {
+			if (other.date_finished != null)
+				return false;
+		} else if (!date_finished.equals(other.date_finished))
+			return false;
+		if (durataAnni != other.durataAnni)
+			return false;
+		if (durataOre != other.durataOre)
+			return false;
 		if (id != other.id)
 			return false;
 		if (nerc == null) {
@@ -59,7 +84,6 @@ public class PowerOutages {
 			return false;
 		return true;
 	}
-
 
 
 
