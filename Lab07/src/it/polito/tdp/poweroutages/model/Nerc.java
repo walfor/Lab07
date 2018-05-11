@@ -57,7 +57,7 @@ public class Nerc {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append(value);
-		builder.append(this.id);
+	
 		return builder.toString();
 	}
 	

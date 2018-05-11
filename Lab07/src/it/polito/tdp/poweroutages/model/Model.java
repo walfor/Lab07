@@ -3,53 +3,54 @@ package it.polito.tdp.poweroutages.model;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+
 import java.util.List;
 
 import it.polito.tdp.poweroutages.db.PowerOutageDAO;
 
 public class Model {
 
-	PowerOutageDAO podao;
-	private List<Nerc> nerclist;
+	private PowerOutageDAO podao;
 
 	private int DURATA_ORE_MAX;
 	private int DURATA_ANNI_MAX;
 
 	private List<PowerOutages> soluzioneParziale;
 	private List<PowerOutages> soluzioneOttimale;
-	private PowerOutagesMapId poweroutageid;
+	private PowerOutagesIdMap poweroutagesmapid;
+	private NercIdMap nercidmap;
+	private List<Nerc> listaNerc; // lista nerc che posso richiamare da test model.
 
-	public Model(int X, int Y) {
+	public Model() {
+
+		podao = new PowerOutageDAO();
+
+		poweroutagesmapid = new PowerOutagesIdMap();
+		nercidmap = new NercIdMap();
+
+		this.listaNerc = podao.getNercList(nercidmap);
+
+	}
+
+	public void start(Nerc nerc, int X, int Y) {
 		this.DURATA_ANNI_MAX = X;
 		this.DURATA_ORE_MAX = Y;
 
-		podao = new PowerOutageDAO();
-		nerclist = podao.getNercList();
-		poweroutageid = new PowerOutagesMapId();
-
-		for (Nerc nerc : this.nerclist) {
-			// System.out.println(nerc);
-			List<PowerOutages> listaBlack = podao.getInformation(nerc);
-			// System.out.println(listaBlack.size());
-			for (PowerOutages p : listaBlack) {
-				this.poweroutageid.put(p);
-				nerc.addPowerOutages(p);
-			}
-		}
-
 		this.soluzioneParziale = new ArrayList<PowerOutages>();
 		this.soluzioneOttimale = new ArrayList<PowerOutages>();
-		Nerc nerc = this.nerclist.get(0);
 
-		recursive(soluzioneParziale, nerc);
+		List<PowerOutages> listaPowerOutages = podao.getInformation(nerc, poweroutagesmapid, this.nercidmap);
 
+		recursive(this.soluzioneParziale, nerc, listaPowerOutages);
+
+		// System.out.println("Tot people effectd : " +
+		// this.contaPersone(soluzioneOttimale));
+		// System.out.println("Tot hours of outage: " +
+		// this.contaOre(soluzioneOttimale));
+		// System.out.println(soluzioneOttimale);
 	}
 
-	public List<Nerc> getNercList() {
-		return podao.getNercList();
-	}
-
-	public void recursive(List<PowerOutages> soluzioneParziale, Nerc nerc) {
+	public void recursive(List<PowerOutages> soluzioneParziale, Nerc nerc, List<PowerOutages> listaPowerOutages) {
 
 		// System.out.println(soluzioneParziale);
 
@@ -57,15 +58,14 @@ public class Model {
 
 			soluzioneOttimale = new ArrayList<PowerOutages>(soluzioneParziale);
 
-			System.out.println(soluzioneOttimale);
 		}
 
-		for (PowerOutages p : this.poweroutageid.listaPowerOutages()) {
+		for (PowerOutages p : listaPowerOutages) {
 
 			if (aggiuntaValida(p, soluzioneParziale, nerc) && !soluzioneParziale.contains(p)) {
 
 				soluzioneParziale.add(p);
-				recursive(soluzioneParziale, nerc);
+				recursive(soluzioneParziale, nerc, listaPowerOutages);
 				soluzioneParziale.remove(p);
 
 			}
@@ -78,34 +78,30 @@ public class Model {
 		return soluzioneOttimale;
 	}
 
-	private int contaPersone(List<PowerOutages> soluzione) {
-		int count = 0;
-		for (PowerOutages p : soluzione) {
-			count += p.getCustomers_effected();
-		}
-		return count;
-	}
-
 	private boolean aggiuntaValida(PowerOutages p, List<PowerOutages> soluzioneParziale, Nerc nerc) {
 
-		if (soluzioneParziale.size() == 0 || soluzioneParziale.size() == 1)
-			return true;
+		if (soluzioneParziale.size() >= 2) {
+			LocalDateTime date_old = soluzioneParziale.get(0).getDate_began();
+			LocalDateTime date_young = soluzioneParziale.get(soluzioneParziale.size() - 1).getDate_finished();
 
-		LocalDateTime date_old = soluzioneParziale.get(0).getDate_began();
-		LocalDateTime date_young = soluzioneParziale.get(soluzioneParziale.size() - 1).getDate_finished();
+			if ((getDurataAnni(date_young, date_old) + 1) > DURATA_ANNI_MAX) {
+				return false;
+			}
 
-		if (getDurataAnni(date_young, date_old) > DURATA_ANNI_MAX) {
-			return false;
+			if (!p.getDate_began().isAfter(soluzioneParziale.get(soluzioneParziale.size() - 1).getDate_began())) {
+				return false;
+			}
+
 		}
 
-		if (p.getDurataOre() > DURATA_ORE_MAX)
+		if (contaOre(soluzioneParziale)+p.getDurataOre() > DURATA_ORE_MAX)
 			return false;
-
-		if (!nerc.equals(p.getNerc())) {
-			return false;
-		}
 
 		return true;
+	}
+
+	public List<Nerc> getListaNerc() {
+		return listaNerc;
 	}
 
 	public long getDurataAnni(LocalDateTime date_young, LocalDateTime date_old) {
@@ -113,4 +109,28 @@ public class Model {
 		return durataAnni;
 	}
 
+	public int contaOre(List<PowerOutages> soluzioneParziale) {
+		int hours = 0;
+		for (PowerOutages p : soluzioneParziale) {
+			hours += p.getDurataOre();
+		}
+		return hours;
+	}
+
+	public int contaPersone(List<PowerOutages> soluzione) {
+		int count = 0;
+		for (PowerOutages p : soluzione) {
+			count += p.getCustomers_effected();
+		}
+		return count;
+	}
+
+	public String ListToString(List<PowerOutages> lista) {
+		String result = "";
+		for (PowerOutages p : lista) {
+			result += p.toString() + "\n";
+		}
+
+		return result.substring(0, result.length() - 1);
+	}
 }

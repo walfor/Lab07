@@ -6,20 +6,22 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import it.polito.tdp.poweroutages.model.Nerc;
+import it.polito.tdp.poweroutages.model.NercIdMap;
 import it.polito.tdp.poweroutages.model.PowerOutages;
-import it.polito.tdp.poweroutages.model.PowerOutagesMapId;
+import it.polito.tdp.poweroutages.model.PowerOutagesIdMap;
 
 public class PowerOutageDAO {
 
-	private PowerOutagesMapId poweroutagesidmap;
-
-	public List<Nerc> getNercList() {
+	public List <Nerc> getNercList(NercIdMap nercidmap) {
+		
+		ArrayList<Nerc> listaNerc = new ArrayList<Nerc>();
 
 		String sql = "SELECT id, value FROM nerc";
-		List<Nerc> nercList = new ArrayList<>();
+		
 
 		try {
 			Connection conn = ConnectDB.getConnection();
@@ -28,7 +30,7 @@ public class PowerOutageDAO {
 
 			while (res.next()) {
 				Nerc n = new Nerc(res.getInt("id"), res.getString("value"));
-				nercList.add(n);
+				listaNerc.add(nercidmap.get(n));
 			}
 
 			conn.close();
@@ -37,12 +39,12 @@ public class PowerOutageDAO {
 			throw new RuntimeException(e);
 		}
 
-		return nercList;
+		return listaNerc;
 	}
 
-	public List <PowerOutages> getInformation(Nerc nerc) {
+	public List <PowerOutages> getInformation(Nerc nerc,PowerOutagesIdMap poweroutagesidmap,NercIdMap nercIdMap) {
 
-		List<PowerOutages> lista= new ArrayList();
+		List<PowerOutages> powerOutages= new ArrayList<PowerOutages>();
 		String sql = "SELECT id,customers_affected,date_event_began,date_event_finished FROM poweroutages  WHERE nerc_id= ? ORDER BY date_event_began,date_event_finished";
 		try {
 			Connection conn = ConnectDB.getConnection();
@@ -55,8 +57,17 @@ public class PowerOutageDAO {
 				int customers_affected = res.getInt("customers_affected");
 				LocalDateTime date_event_began = res.getTimestamp("date_event_began").toLocalDateTime();
 				LocalDateTime date_event_finished = res.getTimestamp("date_event_finished").toLocalDateTime();
-
-				lista.add( new PowerOutages(id, nerc, customers_affected, date_event_began, date_event_finished));
+				
+				
+				
+				
+				 PowerOutages p=poweroutagesidmap.get( new PowerOutages(id, nerc, customers_affected, date_event_began, date_event_finished) );
+				
+				nercIdMap.get(nerc).addPowerOutages(p);
+				
+				powerOutages.add(p);
+				
+				
 
 			}
 
@@ -67,7 +78,7 @@ public class PowerOutageDAO {
 			e.printStackTrace();
 		}
 
-		return lista;
+		return powerOutages;
 
 	}
 }
